@@ -42,9 +42,7 @@ $.getJSON '/data.geojson', (data) ->
       element: el
       stopEvent: false
     map.addOverlay(overlay)
-    overlay.setPosition obj.geometry.coordinates
-    overlay.setPosition [30.36, 59.95]
-    console.log overlay.getElement()
+    overlay.setPosition ol.proj.transform(obj.geometry.coordinates, 'EPSG:4326', 'EPSG:3857')
 
 el = $('<div class="object-marker"></div>').appendTo('body')[0]
 mk = new ol.Overlay
@@ -79,7 +77,7 @@ geolocation.on 'change', (evt) ->
   user.speed = speed
 
   if zoomIsDefault and view.getZoom() == defaultZoomLevel
-    view.setZoom 16
+    view.setZoom 14
     view.
     zoomIsDefault = false
 
