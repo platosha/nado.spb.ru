@@ -79,7 +79,11 @@ GEM
     neat (1.5.0)
       bourbon (>= 2.1)
       sass (>= 3.2)
+    puma (2.9.1)
+      rack (>= 1.1, < 2.0)
     rack (1.5.2)
+    rack-contrib (1.1.0)
+      rack (>= 0.9.1)
     rack-livereload (0.3.15)
       rack
     rack-test (0.6.2)
@@ -122,4 +126,6 @@ DEPENDENCIES
   middleman-gh-pages (~> 0.0.2)
   middleman-livereload
   middleman-neat (~> 0.0.4)
+  puma
+  rack-contrib
   slim (~> 2.0.1)
