@@ -39,8 +39,6 @@ set :slim, pretty: true
 #set :images_dir, 'images'
 
 sprockets.append_path File.join root, 'bower_components'
-puts "Sprockets paths:"
-puts sprockets.paths
 
 # Methods defined in the helpers block are available in templates
 # helpers do

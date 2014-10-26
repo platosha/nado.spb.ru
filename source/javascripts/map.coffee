@@ -1,11 +1,17 @@
 #= require openlayers3/build/ol.js
-#
-# 59.9314953 / 30.3620696
+#= require jquery-1.11.1
+#= require compass
+
+
+zoomIsDefault = true
+defaultZoomLevel = 11
+
 
 # creating the view
 view = new ol.View
   center: ol.proj.transform([30.3620696, 59.9514953], 'EPSG:4326', 'EPSG:3857')
-  zoom: 11
+  zoom: defaultZoomLevel
+window.view = view
 
 # creating the map
 map = new ol.Map
@@ -15,20 +21,39 @@ map = new ol.Map
   target: 'map'
   controls: ol.control.defaults(attributionOptions: { collapsible: false })
   view: view
+window.map = map
 
 
 # Geolocation marker
 markerEl = document.getElementById('user-marker')
-marker = new ol.Overlay
+user = {}
+user.marker = new ol.Overlay
   positioning: 'center-center'
   element: markerEl
   stopEvent: false
-map.addOverlay(marker)
+map.addOverlay(user.marker)
+window.user = user
 
-# LineString to store the different geolocation positions. This LineString
-# is time aware.
-# The Z dimension is actually used to store the rotation (heading).
-positions = new ol.geom.LineString [], ('XYZM')
+$.getJSON '/data.geojson', (data) ->
+  for obj in data.features
+    el = $('<div class="object-marker"></div>').appendTo('body')[0]
+    overlay = new ol.Overlay
+      positioning: 'center-center'
+      element: el
+      stopEvent: false
+    map.addOverlay(overlay)
+    overlay.setPosition obj.geometry.coordinates
+    overlay.setPosition [30.36, 59.95]
+    console.log overlay.getElement()
+
+el = $('<div class="object-marker"></div>').appendTo('body')[0]
+mk = new ol.Overlay
+  positioning: 'center-center'
+  element: el
+  stopEvent: false
+map.addOverlay mk
+window.mk = mk
+
 
 # Geolocation Control
 geolocation = new ol.Geolocation
@@ -37,8 +62,8 @@ geolocation = new ol.Geolocation
     maximumAge: 10000,
     enableHighAccuracy: true,
     timeout: 600000
+window.geolocation = geolocation
 
-deltaMean = 500 # the geolocation sampling period mean in ms
 
 # Listen to position changes
 geolocation.on 'change', (evt) ->
@@ -48,12 +73,15 @@ geolocation.on 'change', (evt) ->
   speed = geolocation.getSpeed() || 0
   m = Date.now()
 
-  addPosition(position, heading, m, speed)
+  user.position = position
+  user.accuracy = accuracy
+  user.heading = heading
+  user.speed = speed
 
-  coords = positions.getCoordinates()
-  len = coords.length
-  if len >= 2
-    deltaMean = (coords[len - 1][3] - coords[0][3]) / (len - 1)
+  if zoomIsDefault and view.getZoom() == defaultZoomLevel
+    view.setZoom 16
+    view.
+    zoomIsDefault = false
 
   # html = [
   #   'Position: ' + position[0].toFixed(2) + ', ' + position[1].toFixed(2),
@@ -71,56 +99,25 @@ geolocation.on 'change', (evt) ->
 # convert radians to degrees
 radToDeg = (rad) ->
   return rad * 360 / (Math.PI * 2)
+
 # convert degrees to radians
 degToRad = (deg) ->
   return deg * Math.PI * 2 / 360
+
 # modulo for negative values
 mod = (n) ->
   return ((n % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI)
 
-addPosition = (position, heading, m, speed) ->
-  x = position[0]
-  y = position[1]
-  fCoords = positions.getCoordinates()
-  previous = fCoords[fCoords.length - 1]
-  prevHeading = previous && previous[2]
-  if prevHeading
-    headingDiff = heading - mod(prevHeading)
-
-    # force the rotation change to be less than 180°
-    if Math.abs(headingDiff) > Math.PI
-      sign = (headingDiff >= 0) ? 1 : -1
-      headingDiff = - sign * (2 * Math.PI - Math.abs(headingDiff))
-    heading = prevHeading + headingDiff
-
-  positions.appendCoordinate([x, y, heading, m])
-
-  # only keep the 20 last coordinates
-  positions.setCoordinates(positions.getCoordinates().slice(-20));
-
-  # FIXME use speed instead
-  if heading && speed
-    markerEl.src = 'data/geolocation_marker_heading.png'
-  else
-    markerEl.src = 'data/geolocation_marker.png'
-
-
-previousM = 0
 # change center and rotation before render
 map.beforeRender (map, frameState) ->
   if frameState != null
-    # use sampling period to get a smooth transition
-    m = frameState.time - deltaMean * 1.5
-    m = Math.max(m, previousM)
-    previousM = m
-    # interpolate position along positions LineString
-    c = positions.getCoordinateAtM(m, true)
-    view = frameState.viewState
-    if c
-      view.center = getCenterWithHeading(c, -c[2], view.resolution)
-      view.rotation = -c[2]
-      marker.setPosition(c)
-  return true # Force animation to continue
+    viewState = frameState.viewState
+    if user.position
+      # viewState.center = getCenterWithHeading(user.position, -user.rotation, viewState.resolution)
+      viewState.center = user.position
+      # viewState.rotation = -user.rotation
+      user.marker.setPosition user.position
+  return true
 
 # recenters the view by putting the given coordinates at 3/4 from the top or
 # the screen
@@ -142,48 +139,10 @@ geolocateBtn.addEventListener 'click', ->
   geolocation.setTracking(true) # Start position tracking
   map.on('postcompose', render)
   map.render()
+  geolocateBtn.style.display = 'none'
   # disableButtons()
 
-# # simulate device move
-# simulationData
-# $.getJSON 'data/geolocation-orientation.json', (data) ->
-#   simulationData = data.data
-# simulateBtn = document.getElementById('simulate')
-# simulateBtn.addEventListenerj'click', () ->
-#   coordinates = simulationData
-#   first = coordinates.shift()
-#   simulatePositionChange(first)
-#   prevDate = first.timestamp
-#   geolocate = ->
-#     position = coordinates.shift()
-#     return null unless position
-#     newDate = position.timestamp
-#     simulatePositionChange(position)
-#     window.setTimeout ->
-#       prevDate = newDate
-#       geolocate()
-#     , (newDate - prevDate) / 0.5
-#   geolocate()
-#
-#   map.on('postcompose', render)
-#   map.render()
-#
-#   disableButtons()
-# , false
-#
-#
-# simulatePositionChange = (position) ->
-#   coords = position.coords
-#   geolocation.set('accuracy', coords.accuracy)
-#   geolocation.set('heading', degToRad(coords.heading))
-#   position_ = [coords.longitude, coords.latitude]
-#   projectedPosition = ol.proj.transform(position_, 'EPSG:4326', 'EPSG:3857')
-#   geolocation.set('position', projectedPosition)
-#   geolocation.set('speed', coords.speed)
-#   geolocation.dispatchChangeEvent()
-#
-
-# disableButtons() ->
-#   geolocateBtn.disabled = 'disabled'
-#   simulateBtn.disabled = 'disabled'
-#
+Compass.init (heading) ->
+  if heading != false
+    user.rotation = heading
+    # view.setRotation heading

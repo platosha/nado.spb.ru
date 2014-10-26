@@ -5,22 +5,29 @@
 
 .map
   position: fixed
-  top: 33px
+  top: 60px
   bottom: 0
   left: 0
   right: 0
 
 #user-marker
   display: block
-  width: 20px
-  height: 20px
-  background: #0ac
-  border-radius: 10px
+  width: 30px
+  height: 30px
 
-#geolocate
-  position: absolute
+.object-marker
+  display: block
+  width: 26px
+  height: 37px
+  background: image-url('marker-icon.png') 50% 50% no-repeat
+  background-size: 100% 100%
+  background: #000
+
+.low-panel
+  position: fixed
   z-index: 1
-  bottom: 40px
+  bottom: 50px
   left: 0
   right: 0
   margin: auto
+  text-align: center
