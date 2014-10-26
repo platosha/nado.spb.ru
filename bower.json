@@ -1,0 +1,10 @@
+{
+  "name": "example-app",
+  "version": "0.0.1",
+  "dependencies": {
+    "pure": "~0.3.0",
+    "modernizr": "~2.6.2",
+    "typeplate-starter-kit": "~1.1.4",
+    "openlayers3": "~3.0.0"
+  }
+}
